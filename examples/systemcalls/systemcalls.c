@@ -1,4 +1,8 @@
 #include "systemcalls.h"
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 
 /**
  * @param cmd the command to execute with system()
@@ -16,8 +20,13 @@ bool do_system(const char *cmd)
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
 */
+    int ret = system(cmd);
 
-    return true;
+    if (ret == 0) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 /**
@@ -47,7 +56,7 @@ bool do_exec(int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    command[count] = command[count];
+    //command[count] = command[count];
 
 /*
  * TODO:
@@ -58,6 +67,33 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
+    if (command[0][0] != '/') {
+        printf("The command given to do_exec() needs to be an absolute path.\n");
+        return false;
+    }
+
+    fflush(stdout);
+    int pid = fork();
+    if (pid == -1) {
+        perror("fork() in do_exec() failed");
+        return false;
+    } else if (pid == 0) {
+        int ret = execv(command[0], command);
+        if (ret == -1) {
+            perror("execv() in do_exec() failed");
+            return false;
+        }
+    } else {
+        int wstatus;
+        int ret = waitpid(pid, &wstatus, 0);
+        if (ret == -1) {
+            perror("wait() in do_exec() failed");
+            return false;
+        } else if (WIFEXITED(wstatus) && WEXITSTATUS(wstatus) != 0) {
+            printf("%s exited with non-zero exit status %d\n", command[0], WEXITSTATUS(wstatus));
+            return false;
+        }
+    }
 
     va_end(args);
 
@@ -82,7 +118,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    command[count] = command[count];
+    //command[count] = command[count];
 
 
 /*
@@ -92,6 +128,45 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
+    if (command[0][0] != '/') {
+        printf("The command given to do_exec() needs to be an absolute path.\n");
+        return false;
+    }
+
+    int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
+    if (fd < 0) {
+        perror("open() in do_exec_redirect() failed");
+        return false;
+    }
+
+    fflush(stdout);
+    int pid = fork();
+    if (pid == -1) {
+        perror("fork() in do_exec() failed");
+        return false;
+    } else if (pid == 0) {
+        if (dup2(fd, 1) < 0) {
+            perror("dup2() in do_exec_redirect() failed");
+            return false;
+        }
+        close(fd);
+        int ret = execv(command[0], command);
+        if (ret == -1) {
+            perror("execv() in do_exec() failed");
+            return false;
+        }
+    } else {
+        close(fd);
+        int wstatus;
+        int ret = wait(&wstatus);
+        if (ret == -1) {
+            perror("wait() in do_exec() failed");
+            return false;
+        } else if (WIFEXITED(wstatus) && WEXITSTATUS(wstatus) != 0) {
+            printf("%s exited with non-zero exit status %d\n", command[0], WEXITSTATUS(wstatus));
+            return false;
+        }
+    }
 
     va_end(args);
 
