@@ -1,6 +1,8 @@
 CC=$(CROSS_COMPILE)gcc
 
-.PHONY: clean
+.PHONY: all clean
+
+all: writer
 
 writer: writer.o
 	$(CC) -o writer writer.o
