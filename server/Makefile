@@ -1,6 +1,3 @@
-CC = $(CROSS_COMPILE)gcc
-CFLAGS += -g -Wall -Werror
-
 .PHONY: all default clean
 
 all: aesdsocket
@@ -8,10 +5,10 @@ all: aesdsocket
 default: aesdsocket
 
 aesdsocket: aesdsocket.o
-	$(CC) $(CFLAGS) -o aesdsocket aesdsocket.o
+	$(CC) $(LDFLAGS) -o aesdsocket aesdsocket.o
 
 aesdsocket.o: aesdsocket.c
-	$(CC) $(CFLAGS) -c -o aesdsocket.o aesdsocket.c
+	$(CC) $(CCFLAGS) -c -o aesdsocket.o aesdsocket.c
 
 clean:
 	-rm aesdsocket *.o
